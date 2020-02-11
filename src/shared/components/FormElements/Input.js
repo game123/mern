@@ -1,6 +1,7 @@
-import React, { useReducer } from "react";
+import React, { useReducer, useEffect } from "react";
 
 import "./Input.css";
+import { validate } from "../util/validators";
 
 const inputReducer = (state, action) => {
   switch (action.type) {
@@ -8,9 +9,14 @@ const inputReducer = (state, action) => {
       return {
         ...state,
         value: action.val,
-        isValid: true
+        isValid: validate(action.val, action.validators)
       };
-
+    case "TOUCH": {
+      return {
+        ...state,
+        isTouched: true
+      };
+    }
     default:
       return state;
   }
@@ -22,8 +28,25 @@ const Input = props => {
     isValid: false
   });
 
+  const { id, onInput } = props;
+  const { value, isValid } = inputState;
+
+  useEffect(() => {
+    onInput(id, value, isValid);
+  }, [id, value, isValid, onInput]);
+
   const changeHandler = event => {
-    dispatch({ type: "CHANGE", val: event.target.value });
+    dispatch({
+      type: "CHANGE",
+      val: event.target.value,
+      validators: props.validators
+    });
+  };
+
+  const touchHandler = () => {
+    dispatch({
+      type: "TOUCH"
+    });
   };
 
   const element =
@@ -33,6 +56,7 @@ const Input = props => {
         type={props.type}
         placeholder={props.placeholder}
         onChange={changeHandler}
+        onBlur={touchHandler}
         value={inputState.value}
       />
     ) : (
@@ -40,6 +64,7 @@ const Input = props => {
         id={props.id}
         rows={props.rows || 3}
         onChange={changeHandler}
+        onBlur={touchHandler}
         value={inputState.value}
       />
     );
@@ -47,11 +72,12 @@ const Input = props => {
   return (
     <div
       className={`form-control ${!inputState.isValid &&
+        inputState.isTouched &&
         "form-control--invalid"}`}
     >
       <label htmlFor={props.id}>{props.label}</label>
       {element}
-      {!inputState.isValid && <p>{props.errorText}</p>}
+      {!inputState.isValid && inputState.isTouched && <p>{props.errorText}</p>}
     </div>
   );
 };
